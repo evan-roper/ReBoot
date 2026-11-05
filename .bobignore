@@ -1,0 +1,20 @@
+# Environment & secrets
+.env
+.env.*
+!.env.example
+*.pem
+*.key
+*.p12
+*.pfx
+secrets/
+secrets.json
+secrets.yaml
+secrets.yml
+
+# Auth & credentials
+.credentials
+.netrc
+auth.json
+
+# Local config overrides
+*.local
