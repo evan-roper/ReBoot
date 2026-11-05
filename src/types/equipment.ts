@@ -164,11 +164,32 @@ export interface HiddenPotentialItem {
   matchStrength: 'Strong' | 'Conditional' | 'Speculative';
 }
 
-export type Page = 'home' | 'inventory' | 'analysis' | 'opportunities';
+export type Page = 'home' | 'inventory' | 'analysis' | 'opportunities' | 'surplus' | 'missing';
+
+// ── Board listings (surplus / missing) ──────────────────────────────────────
+
+export type BoardListingStatus = 'available' | 'fulfilled' | 'expired';
+
+export interface BoardListing {
+  id: string;
+  kind: 'surplus' | 'missing';
+  companyName: string;
+  contactEmail: string;
+  deviceType: DeviceType;
+  name: string;
+  quantity: number;
+  condition?: Condition;          // surplus: condition of items; missing: desired condition
+  specs: string;                  // free-text description
+  location?: string;
+  status: BoardListingStatus;
+  postedAt: string;
+  updatedAt: string;
+}
 
 export interface AppState {
   inventory: EquipmentRecord[];
   customCategories: string[];
   analysisResults: AnalysisResult[];
   analysisRunAt?: string;
+  boardListings: BoardListing[];
 }
