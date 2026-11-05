@@ -1,5 +1,5 @@
 import { useState, useMemo, useEffect } from 'react';
-import { Plus, Search, X, Package2, Pencil, Trash2, CheckCircle2, Link2 } from 'lucide-react';
+import { Plus, Search, X, Package2, Pencil, Trash2, CheckCircle2, Link2, Package } from 'lucide-react';
 import { useApp } from '../context/AppContext';
 import type { BoardListing, DeviceType, Condition, EquipmentRecord } from '../types/equipment';
 import { ConditionBadge } from '../components/Badges';
@@ -178,6 +178,7 @@ export function SurplusPage() {
   const surplus = useMemo(() => boardListings.filter(l => l.kind === 'surplus'), [boardListings]);
 
   const [showForm, setShowForm] = useState(false);
+  const [showInventoryPicker, setShowInventoryPicker] = useState(false);
   const [editTarget, setEditTarget] = useState<BoardListing | undefined>(undefined);
   const [prefill, setPrefill] = useState<ListingFormProps['prefill'] | undefined>(undefined);
   const [deleteConfirm, setDeleteConfirm] = useState<string | null>(null);
@@ -242,12 +243,22 @@ export function SurplusPage() {
             </p>
           )}
         </div>
-        <button
-          onClick={() => { setEditTarget(undefined); setShowForm(true); }}
-          className="flex items-center gap-2 px-4 py-2 bg-primary text-white rounded-lg text-sm font-medium hover:bg-forest focus:outline-none focus:ring-2 focus:ring-primary self-start sm:self-auto"
-        >
-          <Plus size={16} /> Post Surplus
-        </button>
+        <div className="flex gap-2 self-start sm:self-auto flex-wrap">
+          {inventory.length > 0 && (
+            <button
+              onClick={() => setShowInventoryPicker(true)}
+              className="flex items-center gap-2 px-4 py-2 bg-white border border-primary text-primary rounded-lg text-sm font-medium hover:bg-mint focus:outline-none focus:ring-2 focus:ring-primary"
+            >
+              <Package size={16} /> From Inventory
+            </button>
+          )}
+          <button
+            onClick={() => { setEditTarget(undefined); setPrefill(undefined); setShowForm(true); }}
+            className="flex items-center gap-2 px-4 py-2 bg-primary text-white rounded-lg text-sm font-medium hover:bg-forest focus:outline-none focus:ring-2 focus:ring-primary"
+          >
+            <Plus size={16} /> Post Surplus
+          </button>
+        </div>
       </div>
 
       {/* Filters */}
@@ -333,6 +344,27 @@ export function SurplusPage() {
             ))}
           </div>
         </div>
+      )}
+
+      {/* Inventory Picker */}
+      {showInventoryPicker && (
+        <InventoryPickerModal
+          inventory={inventory}
+          onSelect={rec => {
+            setPrefill({
+              inventoryRecordId: rec.id,
+              name: rec.name,
+              deviceType: rec.deviceType,
+              quantity: rec.quantity,
+              condition: rec.condition,
+              specs: rec.specs,
+            });
+            setEditTarget(undefined);
+            setShowInventoryPicker(false);
+            setShowForm(true);
+          }}
+          onClose={() => setShowInventoryPicker(false)}
+        />
       )}
 
       {/* Forms and modals */}
@@ -430,6 +462,72 @@ function ListingCard({ listing, linkedRecord, onEdit, onDelete, onMarkFulfilled 
           >
             <Trash2 size={15} />
           </button>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+// ── Inventory Picker Modal ────────────────────────────────────────────────────
+
+interface InventoryPickerModalProps {
+  inventory: EquipmentRecord[];
+  onSelect: (rec: EquipmentRecord) => void;
+  onClose: () => void;
+}
+
+function InventoryPickerModal({ inventory, onSelect, onClose }: InventoryPickerModalProps) {
+  const [search, setSearch] = useState('');
+
+  const filtered = useMemo(() => {
+    const q = search.toLowerCase();
+    return inventory.filter(r =>
+      !q ||
+      r.name.toLowerCase().includes(q) ||
+      r.deviceType.toLowerCase().includes(q) ||
+      ((r.specs as Record<string, unknown>).manufacturer as string ?? '').toLowerCase().includes(q)
+    );
+  }, [inventory, search]);
+
+  return (
+    <div className="fixed inset-0 z-50 flex items-start justify-center bg-black/40 pt-10 pb-4 px-4 overflow-y-auto" role="dialog" aria-modal="true" aria-label="Choose from inventory">
+      <div className="bg-white rounded-2xl shadow-xl w-full max-w-lg">
+        <div className="flex items-center justify-between px-6 py-4 border-b border-gray-100">
+          <h2 className="text-lg font-semibold text-apptext">Choose from Inventory</h2>
+          <button onClick={onClose} className="p-1 rounded-md hover:bg-gray-100 focus:outline-none focus:ring-2 focus:ring-primary" aria-label="Close">
+            <X size={20} />
+          </button>
+        </div>
+        <div className="px-4 pt-3 pb-2">
+          <div className="relative">
+            <Search size={15} className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" />
+            <input
+              type="search"
+              placeholder="Search inventory…"
+              value={search}
+              onChange={e => setSearch(e.target.value)}
+              autoFocus
+              className="w-full pl-8 pr-3 py-2 rounded-lg border border-gray-200 text-sm focus:outline-none focus:ring-2 focus:ring-primary/40"
+            />
+          </div>
+        </div>
+        <div className="max-h-96 overflow-y-auto px-3 pb-4 space-y-1">
+          {filtered.length === 0 && (
+            <p className="text-sm text-gray-500 text-center py-6">No inventory records match.</p>
+          )}
+          {filtered.map(rec => (
+            <button
+              key={rec.id}
+              onClick={() => onSelect(rec)}
+              className="w-full text-left flex items-center justify-between gap-3 px-3 py-3 rounded-xl hover:bg-mint focus:outline-none focus:ring-2 focus:ring-primary transition-colors"
+            >
+              <div>
+                <p className="text-sm font-medium text-apptext">{rec.name}</p>
+                <p className="text-xs text-gray-500">{rec.deviceType} · {rec.quantity} unit{rec.quantity !== 1 ? 's' : ''} · {rec.condition}</p>
+              </div>
+              <Plus size={16} className="text-primary shrink-0" />
+            </button>
+          ))}
         </div>
       </div>
     </div>
