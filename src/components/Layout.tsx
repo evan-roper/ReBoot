@@ -7,8 +7,8 @@ const NAV_ITEMS: { id: Page; label: string; icon: string }[] = [
   { id: 'home', label: 'Home', icon: '🏠' },
   { id: 'inventory', label: 'Inventory', icon: '📦' },
   { id: 'analysis', label: 'Analysis Dashboard', icon: '📊' },
-  { id: 'opportunities', label: 'Second Life Opportunities', icon: '♻️' },
   { id: 'surplus', label: 'Surplus Equipment', icon: '🔁' },
+  { id: 'opportunities', label: 'Second Life Opportunities', icon: '♻️' },
 ];
 
 function NavItem({ item, active, onClick }: { item: typeof NAV_ITEMS[0]; active: boolean; onClick: () => void }) {
