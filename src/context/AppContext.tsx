@@ -15,6 +15,7 @@ interface AppContextValue {
   addRecord: (r: EquipmentRecord) => void;
   updateRecord: (r: EquipmentRecord) => void;
   deleteRecord: (id: string) => void;
+  clearInventory: () => void;
   loadDemo: (force?: boolean) => 'loaded' | 'confirm';
   runAnalysis: () => void;
   addCustomCategory: (name: string) => void;
@@ -27,6 +28,7 @@ type Action =
   | { type: 'ADD_RECORD'; payload: EquipmentRecord }
   | { type: 'UPDATE_RECORD'; payload: EquipmentRecord }
   | { type: 'DELETE_RECORD'; payload: string }
+  | { type: 'CLEAR_INVENTORY' }
   | { type: 'SET_ANALYSIS'; payload: { results: AnalysisResult[]; runAt: string } }
   | { type: 'LOAD_DEMO'; payload: EquipmentRecord[] }
   | { type: 'ADD_CATEGORY'; payload: string }
@@ -57,6 +59,8 @@ function reducer(state: State, action: Action): State {
         inventory: state.inventory.filter(r => r.id !== action.payload),
         analysisResults: state.analysisResults.filter(ar => ar.recordId !== action.payload),
       };
+    case 'CLEAR_INVENTORY':
+      return { ...state, inventory: [], analysisResults: [], analysisRunAt: undefined };
     case 'SET_ANALYSIS':
       return { ...state, analysisResults: action.payload.results, analysisRunAt: action.payload.runAt };
     case 'LOAD_DEMO':
@@ -129,6 +133,10 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
     dispatch({ type: 'SET_ANALYSIS', payload: { results, runAt: new Date().toISOString() } });
   }, [state.inventory]);
 
+  const clearInventory = useCallback(() => {
+    dispatch({ type: 'CLEAR_INVENTORY' });
+  }, []);
+
   const addCustomCategory = useCallback((name: string) => {
     dispatch({ type: 'ADD_CATEGORY', payload: name });
   }, []);
@@ -145,6 +153,7 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
       addRecord,
       updateRecord,
       deleteRecord,
+      clearInventory,
       loadDemo,
       runAnalysis,
       addCustomCategory,
