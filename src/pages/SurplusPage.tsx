@@ -38,9 +38,10 @@ interface ListingFormProps {
   prefill?: Pick<EquipmentRecord, 'name' | 'deviceType' | 'quantity' | 'condition' | 'specs'> & { inventoryRecordId: string };
   onClose: () => void;
   onSaved: () => void;
+  onReview?: (listing: BoardListing) => void; // for new listings — triggers verification
 }
 
-function ListingForm({ existing, prefill, onClose, onSaved }: ListingFormProps) {
+function ListingForm({ existing, prefill, onClose, onSaved, onReview }: ListingFormProps) {
   const { addBoardListing, updateBoardListing } = useApp();
   const [form, setForm] = useState({
     companyName: existing?.companyName ?? '',
@@ -71,6 +72,7 @@ function ListingForm({ existing, prefill, onClose, onSaved }: ListingFormProps) 
     if (Object.keys(errs).length) { setErrors(errs); return; }
     const now = new Date().toISOString();
     if (existing) {
+      // Edits save immediately — no verification step
       updateBoardListing({
         ...existing,
         ...form,
@@ -78,8 +80,10 @@ function ListingForm({ existing, prefill, onClose, onSaved }: ListingFormProps) 
         condition: form.condition || undefined,
         updatedAt: now,
       });
+      onSaved();
     } else {
-      addBoardListing({
+      // New listings go to verification
+      const pending: BoardListing = {
         id: generateId(),
         kind: 'surplus',
         ...form,
@@ -89,9 +93,14 @@ function ListingForm({ existing, prefill, onClose, onSaved }: ListingFormProps) 
         postedAt: now,
         updatedAt: now,
         inventoryRecordId: prefill?.inventoryRecordId,
-      });
+      };
+      if (onReview) {
+        onReview(pending);
+      } else {
+        addBoardListing(pending);
+        onSaved();
+      }
     }
-    onSaved();
   }
 
   function field(label: string, key: keyof typeof form, input: React.ReactNode) {
@@ -173,14 +182,24 @@ function ListingForm({ existing, prefill, onClose, onSaved }: ListingFormProps) 
   );
 }
 
+function Row({ label, value }: { label: string; value: string }) {
+  return (
+    <div className="flex gap-2">
+      <span className="w-20 shrink-0 font-medium text-gray-500">{label}</span>
+      <span className="text-apptext break-all">{value}</span>
+    </div>
+  );
+}
+
 export function SurplusPage() {
-  const { boardListings, updateBoardListing, deleteBoardListing, pendingSurplusPrefill, inventory } = useApp();
+  const { boardListings, addBoardListing, updateBoardListing, deleteBoardListing, pendingSurplusPrefill, inventory } = useApp();
   const surplus = useMemo(() => boardListings.filter(l => l.kind === 'surplus'), [boardListings]);
 
   const [showForm, setShowForm] = useState(false);
   const [showInventoryPicker, setShowInventoryPicker] = useState(false);
   const [editTarget, setEditTarget] = useState<BoardListing | undefined>(undefined);
   const [prefill, setPrefill] = useState<ListingFormProps['prefill'] | undefined>(undefined);
+  const [pendingListing, setPendingListing] = useState<BoardListing | null>(null);
   const [deleteConfirm, setDeleteConfirm] = useState<string | null>(null);
   const [search, setSearch] = useState('');
   const [typeFilter, setTypeFilter] = useState<DeviceType | ''>('');
@@ -373,8 +392,48 @@ export function SurplusPage() {
           existing={editTarget}
           prefill={editTarget ? undefined : prefill}
           onClose={() => { setShowForm(false); setEditTarget(undefined); setPrefill(undefined); }}
-          onSaved={() => { setShowForm(false); setEditTarget(undefined); setPrefill(undefined); showToast(editTarget ? 'Listing updated.' : 'Listing posted.'); }}
+          onSaved={() => { setShowForm(false); setEditTarget(undefined); setPrefill(undefined); showToast('Listing updated.'); }}
+          onReview={listing => { setShowForm(false); setPendingListing(listing); }}
         />
+      )}
+
+      {/* Verification modal */}
+      {pendingListing && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 px-4" role="dialog" aria-modal="true">
+          <div className="bg-white rounded-2xl shadow-xl max-w-md w-full p-6">
+            <h2 className="text-lg font-semibold text-apptext mb-1">Confirm Surplus Listing</h2>
+            <p className="text-sm text-gray-500 mb-5">Please review the details below before posting.</p>
+            <div className="bg-gray-50 rounded-xl p-4 space-y-2 text-sm mb-6">
+              <Row label="Name" value={pendingListing.name} />
+              <Row label="Type" value={pendingListing.deviceType} />
+              <Row label="Quantity" value={String(pendingListing.quantity)} />
+              {pendingListing.condition && <Row label="Condition" value={pendingListing.condition} />}
+              <Row label="Company" value={pendingListing.companyName} />
+              <Row label="Contact" value={pendingListing.contactEmail} />
+              {pendingListing.location && <Row label="Location" value={pendingListing.location} />}
+              {pendingListing.specs && <Row label="Specs" value={pendingListing.specs} />}
+            </div>
+            <div className="flex gap-3 justify-end">
+              <button
+                onClick={() => { setPendingListing(null); setPrefill(undefined); showToast('Listing discarded.'); }}
+                className="px-4 py-2 text-sm font-medium text-gray-600 bg-white border border-gray-200 rounded-lg hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-primary"
+              >
+                No, discard
+              </button>
+              <button
+                onClick={() => {
+                  addBoardListing(pendingListing);
+                  setPendingListing(null);
+                  setPrefill(undefined);
+                  showToast('Listing posted successfully.');
+                }}
+                className="px-5 py-2 text-sm font-medium text-white bg-primary rounded-lg hover:bg-forest focus:outline-none focus:ring-2 focus:ring-primary"
+              >
+                Yes, post listing
+              </button>
+            </div>
+          </div>
+        </div>
       )}
 
       {deleteConfirm && (

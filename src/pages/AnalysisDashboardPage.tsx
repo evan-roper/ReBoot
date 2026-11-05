@@ -1,5 +1,5 @@
 import { useMemo } from 'react';
-import { BarChart2, Play, Lightbulb, AlertTriangle, CheckCircle, Clock, Wrench, ChevronRight } from 'lucide-react';
+import { BarChart2, Lightbulb, AlertTriangle, CheckCircle, Clock, Wrench, ChevronRight } from 'lucide-react';
 import { useApp } from '../context/AppContext';
 import { analyzeAll, totalUnits } from '../analysis/engine';
 import { ClassificationBadge, ReadinessBadge, ConditionBadge } from '../components/Badges';
@@ -20,7 +20,7 @@ const CLASSIFICATION_ICONS: Record<Classification, typeof CheckCircle> = {
 };
 
 export function AnalysisDashboardPage() {
-  const { inventory, analysisResults, analysisRunAt, runAnalysis, navigate } = useApp();
+  const { inventory, analysisResults, analysisRunAt, navigate } = useApp();
 
   // Always derive fresh results from current inventory
   const results: AnalysisResult[] = useMemo(() => {
@@ -90,19 +90,11 @@ export function AnalysisDashboardPage() {
   return (
     <div className="space-y-8">
       {/* Header */}
-      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
-        <div>
-          <h1 className="text-2xl font-bold text-apptext">Equipment Analysis</h1>
-          {analysisRunAt && (
-            <p className="text-xs text-gray-400 mt-1">Last analyzed: {new Date(analysisRunAt).toLocaleString()}</p>
-          )}
-        </div>
-        <button
-          onClick={runAnalysis}
-          className="flex items-center gap-2 px-5 py-2.5 bg-primary text-white rounded-lg text-sm font-medium hover:bg-forest focus:outline-none focus:ring-2 focus:ring-primary"
-        >
-          <Play size={16} /> Run Analysis
-        </button>
+      <div>
+        <h1 className="text-2xl font-bold text-apptext">Equipment Analysis</h1>
+        {analysisRunAt && (
+          <p className="text-xs text-gray-400 mt-1">Last analyzed: {new Date(analysisRunAt).toLocaleString()}</p>
+        )}
       </div>
 
       {/* Summary stats */}
