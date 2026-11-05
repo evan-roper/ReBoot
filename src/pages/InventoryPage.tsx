@@ -1,8 +1,10 @@
 import { useState, useMemo } from 'react';
-import { Plus, Search, RefreshCw, BarChart2, Pencil, Trash2, X, Package } from 'lucide-react';
+import { Plus, Search, RefreshCw, BarChart2, Pencil, Trash2, X, Package, Upload, Download } from 'lucide-react';
 import { useApp } from '../context/AppContext';
 import { EquipmentForm } from '../components/EquipmentForm';
+import { CSVImportModal } from '../components/CSVImportModal';
 import { ConditionBadge, ClassificationBadge } from '../components/Badges';
+import { downloadCSV } from '../utils/csv';
 import type { EquipmentRecord, DeviceType, Condition } from '../types/equipment';
 
 function specSummary(rec: EquipmentRecord): string {
@@ -35,6 +37,7 @@ export function InventoryPage() {
   const [editTarget, setEditTarget] = useState<EquipmentRecord | undefined>(undefined);
   const [deleteConfirm, setDeleteConfirm] = useState<string | null>(null);
   const [demoConfirm, setDemoConfirm] = useState(false);
+  const [showImport, setShowImport] = useState(false);
   const [search, setSearch] = useState('');
   const [typeFilter, setTypeFilter] = useState<DeviceType | ''>('');
   const [condFilter, setCondFilter] = useState<Condition | ''>('');
@@ -114,6 +117,20 @@ export function InventoryPage() {
           >
             <Plus size={16} /> Add Equipment
           </button>
+          <button
+            onClick={() => setShowImport(true)}
+            className="flex items-center gap-2 px-4 py-2 bg-white border border-gray-200 text-gray-700 rounded-lg text-sm font-medium hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-primary"
+          >
+            <Upload size={16} /> Import CSV
+          </button>
+          {inventory.length > 0 && (
+            <button
+              onClick={() => { downloadCSV(inventory); showToast('CSV downloaded.'); }}
+              className="flex items-center gap-2 px-4 py-2 bg-white border border-gray-200 text-gray-700 rounded-lg text-sm font-medium hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-primary"
+            >
+              <Download size={16} /> Export CSV
+            </button>
+          )}
           <button
             onClick={handleLoadDemo}
             className="flex items-center gap-2 px-4 py-2 bg-white border border-gray-200 text-gray-700 rounded-lg text-sm font-medium hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-primary"
@@ -298,6 +315,14 @@ export function InventoryPage() {
             })}
           </div>
         </>
+      )}
+
+      {/* CSV Import Modal */}
+      {showImport && (
+        <CSVImportModal
+          onClose={() => setShowImport(false)}
+          onImportDone={() => showToast('CSV imported successfully.')}
+        />
       )}
 
       {/* Forms and dialogs */}
