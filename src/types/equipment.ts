@@ -164,7 +164,7 @@ export interface HiddenPotentialItem {
   matchStrength: 'Strong' | 'Conditional' | 'Speculative';
 }
 
-export type Page = 'home' | 'inventory' | 'analysis' | 'opportunities' | 'surplus' | 'missing';
+export type Page = 'home' | 'inventory' | 'analysis' | 'opportunities' | 'surplus';
 
 // ── Board listings (surplus / missing) ──────────────────────────────────────
 

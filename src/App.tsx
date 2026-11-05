@@ -5,7 +5,6 @@ import { InventoryPage } from './pages/InventoryPage';
 import { AnalysisDashboardPage } from './pages/AnalysisDashboardPage';
 import { OpportunitiesPage } from './pages/OpportunitiesPage';
 import { SurplusPage } from './pages/SurplusPage';
-import { MissingPage } from './pages/MissingPage';
 
 function Pages() {
   const { currentPage } = useApp();
@@ -15,7 +14,6 @@ function Pages() {
     case 'analysis': return <AnalysisDashboardPage />;
     case 'opportunities': return <OpportunitiesPage />;
     case 'surplus': return <SurplusPage />;
-    case 'missing': return <MissingPage />;
     default: return <HomePage />;
   }
 }
