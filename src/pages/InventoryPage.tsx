@@ -1,5 +1,5 @@
 import { useState, useMemo } from 'react';
-import { Plus, Search, RefreshCw, BarChart2, Pencil, Trash2, X, Package, Upload, Download } from 'lucide-react';
+import { Plus, Search, RefreshCw, BarChart2, Pencil, Trash2, X, Package, Upload, Download, ArrowUpRight } from 'lucide-react';
 import { useApp } from '../context/AppContext';
 import { EquipmentForm } from '../components/EquipmentForm';
 import { CSVImportModal } from '../components/CSVImportModal';
@@ -32,7 +32,7 @@ const DEVICE_TYPE_OPTIONS: (DeviceType | '')[] = ['', 'Desktop', 'Laptop', 'Serv
 const CONDITION_OPTIONS: (Condition | '')[] = ['', 'Working', 'Needs repair', 'Untested', 'Nonfunctional'];
 
 export function InventoryPage() {
-  const { inventory, deleteRecord, navigate, loadDemo, runAnalysis, analysisResults } = useApp();
+  const { inventory, deleteRecord, navigate, navigateToSurplusWithRecord, loadDemo, runAnalysis, analysisResults } = useApp();
   const [showForm, setShowForm] = useState(false);
   const [editTarget, setEditTarget] = useState<EquipmentRecord | undefined>(undefined);
   const [deleteConfirm, setDeleteConfirm] = useState<string | null>(null);
@@ -261,6 +261,14 @@ export function InventoryPage() {
                         <td className="px-4 py-3.5">
                           <div className="flex items-center gap-1">
                             <button
+                              onClick={() => navigateToSurplusWithRecord(rec)}
+                              className="p-1.5 rounded-md hover:bg-mint text-gray-500 hover:text-primary focus:outline-none focus:ring-2 focus:ring-primary"
+                              aria-label={`Post ${rec.name} as surplus`}
+                              title="Post as Surplus"
+                            >
+                              <ArrowUpRight size={15} />
+                            </button>
+                            <button
                               onClick={() => { setEditTarget(rec); setShowForm(true); }}
                               className="p-1.5 rounded-md hover:bg-gray-100 text-gray-500 hover:text-primary focus:outline-none focus:ring-2 focus:ring-primary"
                               aria-label={`Edit ${rec.name}`}
@@ -296,6 +304,9 @@ export function InventoryPage() {
                       <p className="text-xs text-gray-500">{rec.deviceType} · {rec.quantity} unit{rec.quantity !== 1 ? 's' : ''}</p>
                     </div>
                     <div className="flex gap-1">
+                      <button onClick={() => navigateToSurplusWithRecord(rec)} className="p-1.5 rounded-md hover:bg-mint text-gray-500 hover:text-primary" aria-label={`Post ${rec.name} as surplus`} title="Post as Surplus">
+                        <ArrowUpRight size={15} />
+                      </button>
                       <button onClick={() => { setEditTarget(rec); setShowForm(true); }} className="p-1.5 rounded-md hover:bg-gray-100 text-gray-500 hover:text-primary" aria-label={`Edit ${rec.name}`}>
                         <Pencil size={15} />
                       </button>

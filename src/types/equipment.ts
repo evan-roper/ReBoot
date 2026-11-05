@@ -184,6 +184,7 @@ export interface BoardListing {
   status: BoardListingStatus;
   postedAt: string;
   updatedAt: string;
+  inventoryRecordId?: string;     // optional link to an EquipmentRecord
 }
 
 export interface AppState {

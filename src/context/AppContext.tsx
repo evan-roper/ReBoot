@@ -1,8 +1,17 @@
-import React, { createContext, useContext, useEffect, useReducer, useCallback } from 'react';
+import React, { createContext, useContext, useEffect, useReducer, useCallback, useRef } from 'react';
 import type { EquipmentRecord, AnalysisResult, AppState, Page, BoardListing } from '../types/equipment';
 import { loadState, saveState } from '../utils/storage';
 import { analyzeAll } from '../analysis/engine';
 import { DEMO_RECORDS } from '../data/demoData';
+
+export interface SurplusPrefill {
+  inventoryRecordId: string;
+  name: string;
+  deviceType: EquipmentRecord['deviceType'];
+  quantity: number;
+  condition: EquipmentRecord['condition'];
+  specs: EquipmentRecord['specs'];
+}
 
 interface AppContextValue {
   inventory: EquipmentRecord[];
@@ -12,6 +21,8 @@ interface AppContextValue {
   saveFailed: boolean;
   currentPage: Page;
   navigate: (page: Page) => void;
+  navigateToSurplusWithRecord: (rec: EquipmentRecord) => void;
+  pendingSurplusPrefill: React.MutableRefObject<SurplusPrefill | null>;
   addRecord: (r: EquipmentRecord) => void;
   updateRecord: (r: EquipmentRecord) => void;
   deleteRecord: (id: string) => void;
@@ -100,6 +111,7 @@ const initial: State = {
 export function AppProvider({ children }: { children: React.ReactNode }) {
   const [state, dispatch] = useReducer(reducer, initial);
   const [currentPage, setCurrentPage] = React.useState<Page>('home');
+  const pendingSurplusPrefill = useRef<SurplusPrefill | null>(null);
 
   // Load from localStorage on mount
   useEffect(() => {
@@ -122,6 +134,18 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
   }, [state.inventory, state.customCategories, state.analysisResults, state.analysisRunAt, state.boardListings]);
 
   const navigate = useCallback((page: Page) => setCurrentPage(page), []);
+
+  const navigateToSurplusWithRecord = useCallback((rec: EquipmentRecord) => {
+    pendingSurplusPrefill.current = {
+      inventoryRecordId: rec.id,
+      name: rec.name,
+      deviceType: rec.deviceType,
+      quantity: rec.quantity,
+      condition: rec.condition,
+      specs: rec.specs,
+    };
+    setCurrentPage('surplus');
+  }, []);
 
   const addRecord = useCallback((r: EquipmentRecord) => {
     dispatch({ type: 'ADD_RECORD', payload: r });
@@ -177,6 +201,8 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
       saveFailed: state.saveFailed,
       currentPage,
       navigate,
+      navigateToSurplusWithRecord,
+      pendingSurplusPrefill,
       addRecord,
       updateRecord,
       deleteRecord,

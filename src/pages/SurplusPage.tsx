@@ -1,7 +1,7 @@
-import { useState, useMemo } from 'react';
-import { Plus, Search, X, Package2, Pencil, Trash2, CheckCircle2 } from 'lucide-react';
+import { useState, useMemo, useEffect } from 'react';
+import { Plus, Search, X, Package2, Pencil, Trash2, CheckCircle2, Link2 } from 'lucide-react';
 import { useApp } from '../context/AppContext';
-import type { BoardListing, DeviceType, Condition } from '../types/equipment';
+import type { BoardListing, DeviceType, Condition, EquipmentRecord } from '../types/equipment';
 import { ConditionBadge } from '../components/Badges';
 
 const DEVICE_TYPE_OPTIONS: (DeviceType | '')[] = [
@@ -13,22 +13,43 @@ function generateId() {
   return `surplus-${Date.now()}-${Math.random().toString(36).slice(2, 7)}`;
 }
 
+/** Convert structured specs object to a readable string for the listing form. */
+function specSummaryFromRecord(specs: unknown): string {
+  if (!specs || typeof specs !== 'object') return '';
+  const s = specs as Record<string, unknown>;
+  const parts: string[] = [];
+  if (s.cpuModel) parts.push(String(s.cpuModel));
+  if (s.coreCount) parts.push(`${s.coreCount} cores`);
+  if (s.ramGB) parts.push(`${s.ramGB} GB RAM`);
+  if (s.storageGB) parts.push(`${s.storageGB} GB ${s.storageType ?? ''}`);
+  if (s.dedicatedGPU === 'Present' && s.gpuModel) parts.push(`GPU: ${s.gpuModel}${s.gpuVramGB ? ` ${s.gpuVramGB}GB VRAM` : ''}`);
+  if (s.vaRating) parts.push(`${s.vaRating}VA`);
+  if (s.screenSizeInch) parts.push(`${s.screenSizeInch}"`);
+  if (s.resolution) parts.push(String(s.resolution));
+  if (s.capacityGB) parts.push(`${s.capacityGB} GB`);
+  if (s.interface) parts.push(String(s.interface));
+  if (s.portCount) parts.push(`${s.portCount} ports`);
+  if (s.notes) parts.push(String(s.notes));
+  return parts.filter(Boolean).join(', ');
+}
+
 interface ListingFormProps {
   existing?: BoardListing;
+  prefill?: Pick<EquipmentRecord, 'name' | 'deviceType' | 'quantity' | 'condition' | 'specs'> & { inventoryRecordId: string };
   onClose: () => void;
   onSaved: () => void;
 }
 
-function ListingForm({ existing, onClose, onSaved }: ListingFormProps) {
+function ListingForm({ existing, prefill, onClose, onSaved }: ListingFormProps) {
   const { addBoardListing, updateBoardListing } = useApp();
   const [form, setForm] = useState({
     companyName: existing?.companyName ?? '',
     contactEmail: existing?.contactEmail ?? '',
-    deviceType: existing?.deviceType ?? ('' as DeviceType | ''),
-    name: existing?.name ?? '',
-    quantity: existing?.quantity ?? 1,
-    condition: existing?.condition ?? ('' as Condition | ''),
-    specs: existing?.specs ?? '',
+    deviceType: existing?.deviceType ?? prefill?.deviceType ?? ('' as DeviceType | ''),
+    name: existing?.name ?? prefill?.name ?? '',
+    quantity: existing?.quantity ?? prefill?.quantity ?? 1,
+    condition: existing?.condition ?? prefill?.condition ?? ('' as Condition | ''),
+    specs: existing?.specs ?? (prefill ? specSummaryFromRecord(prefill.specs) : ''),
     location: existing?.location ?? '',
   });
   const [errors, setErrors] = useState<Record<string, string>>({});
@@ -67,6 +88,7 @@ function ListingForm({ existing, onClose, onSaved }: ListingFormProps) {
         status: 'available',
         postedAt: now,
         updatedAt: now,
+        inventoryRecordId: prefill?.inventoryRecordId,
       });
     }
     onSaved();
@@ -152,15 +174,26 @@ function ListingForm({ existing, onClose, onSaved }: ListingFormProps) {
 }
 
 export function SurplusPage() {
-  const { boardListings, updateBoardListing, deleteBoardListing } = useApp();
+  const { boardListings, updateBoardListing, deleteBoardListing, pendingSurplusPrefill, inventory } = useApp();
   const surplus = useMemo(() => boardListings.filter(l => l.kind === 'surplus'), [boardListings]);
 
   const [showForm, setShowForm] = useState(false);
   const [editTarget, setEditTarget] = useState<BoardListing | undefined>(undefined);
+  const [prefill, setPrefill] = useState<ListingFormProps['prefill'] | undefined>(undefined);
   const [deleteConfirm, setDeleteConfirm] = useState<string | null>(null);
   const [search, setSearch] = useState('');
   const [typeFilter, setTypeFilter] = useState<DeviceType | ''>('');
   const [toast, setToast] = useState<string | null>(null);
+
+  // Pick up prefill from inventory navigation
+  useEffect(() => {
+    if (pendingSurplusPrefill.current) {
+      setPrefill(pendingSurplusPrefill.current);
+      setEditTarget(undefined);
+      setShowForm(true);
+      pendingSurplusPrefill.current = null;
+    }
+  }, [pendingSurplusPrefill]);
 
   function showToast(msg: string) {
     setToast(msg);
@@ -275,6 +308,7 @@ export function SurplusPage() {
             <ListingCard
               key={listing.id}
               listing={listing}
+              linkedRecord={listing.inventoryRecordId ? inventory.find(r => r.id === listing.inventoryRecordId) : undefined}
               onEdit={() => { setEditTarget(listing); setShowForm(true); }}
               onDelete={() => setDeleteConfirm(listing.id)}
               onMarkFulfilled={() => handleMarkFulfilled(listing)}
@@ -292,6 +326,7 @@ export function SurplusPage() {
               <ListingCard
                 key={listing.id}
                 listing={listing}
+                linkedRecord={listing.inventoryRecordId ? inventory.find(r => r.id === listing.inventoryRecordId) : undefined}
                 onEdit={() => { setEditTarget(listing); setShowForm(true); }}
                 onDelete={() => setDeleteConfirm(listing.id)}
               />
@@ -304,8 +339,9 @@ export function SurplusPage() {
       {showForm && (
         <ListingForm
           existing={editTarget}
-          onClose={() => { setShowForm(false); setEditTarget(undefined); }}
-          onSaved={() => { setShowForm(false); setEditTarget(undefined); showToast(editTarget ? 'Listing updated.' : 'Listing posted.'); }}
+          prefill={editTarget ? undefined : prefill}
+          onClose={() => { setShowForm(false); setEditTarget(undefined); setPrefill(undefined); }}
+          onSaved={() => { setShowForm(false); setEditTarget(undefined); setPrefill(undefined); showToast(editTarget ? 'Listing updated.' : 'Listing posted.'); }}
         />
       )}
 
@@ -335,12 +371,13 @@ export function SurplusPage() {
 
 interface ListingCardProps {
   listing: BoardListing;
+  linkedRecord?: EquipmentRecord;
   onEdit: () => void;
   onDelete: () => void;
   onMarkFulfilled?: () => void;
 }
 
-function ListingCard({ listing, onEdit, onDelete, onMarkFulfilled }: ListingCardProps) {
+function ListingCard({ listing, linkedRecord, onEdit, onDelete, onMarkFulfilled }: ListingCardProps) {
   const postedDate = new Date(listing.postedAt).toLocaleDateString(undefined, { month: 'short', day: 'numeric', year: 'numeric' });
   return (
     <div className="bg-white rounded-2xl border border-gray-100 shadow-sm p-5">
@@ -352,6 +389,11 @@ function ListingCard({ listing, onEdit, onDelete, onMarkFulfilled }: ListingCard
             {listing.condition && <ConditionBadge value={listing.condition} />}
             {listing.status === 'fulfilled' && (
               <span className="text-xs font-medium text-green-700 bg-green-100 rounded-full px-2 py-0.5">Fulfilled</span>
+            )}
+            {linkedRecord && (
+              <span className="flex items-center gap-1 text-xs font-medium text-primary bg-mint rounded-full px-2 py-0.5" title={`Linked to inventory: ${linkedRecord.name}`}>
+                <Link2 size={11} /> Inventory linked
+              </span>
             )}
           </div>
           <p className="text-sm text-gray-600 mb-2 line-clamp-2">{listing.specs || '—'}</p>
