@@ -33,6 +33,7 @@ export function loadState(): AppState | null {
         : [],
       analysisResults: Array.isArray(parsed.analysisResults) ? parsed.analysisResults : [],
       analysisRunAt: parsed.analysisRunAt,
+      boardListings: Array.isArray(parsed.boardListings) ? parsed.boardListings : [],
     };
   } catch {
     return null;

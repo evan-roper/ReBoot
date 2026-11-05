@@ -1,5 +1,5 @@
 import React, { createContext, useContext, useEffect, useReducer, useCallback } from 'react';
-import type { EquipmentRecord, AnalysisResult, AppState, Page } from '../types/equipment';
+import type { EquipmentRecord, AnalysisResult, AppState, Page, BoardListing } from '../types/equipment';
 import { loadState, saveState } from '../utils/storage';
 import { analyzeAll } from '../analysis/engine';
 import { DEMO_RECORDS } from '../data/demoData';
@@ -19,6 +19,10 @@ interface AppContextValue {
   loadDemo: (force?: boolean) => 'loaded' | 'confirm';
   runAnalysis: () => void;
   addCustomCategory: (name: string) => void;
+  boardListings: BoardListing[];
+  addBoardListing: (l: BoardListing) => void;
+  updateBoardListing: (l: BoardListing) => void;
+  deleteBoardListing: (id: string) => void;
 }
 
 const AppContext = createContext<AppContextValue | null>(null);
@@ -32,7 +36,10 @@ type Action =
   | { type: 'SET_ANALYSIS'; payload: { results: AnalysisResult[]; runAt: string } }
   | { type: 'LOAD_DEMO'; payload: EquipmentRecord[] }
   | { type: 'ADD_CATEGORY'; payload: string }
-  | { type: 'SET_SAVE_FAILED'; payload: boolean };
+  | { type: 'SET_SAVE_FAILED'; payload: boolean }
+  | { type: 'ADD_BOARD_LISTING'; payload: BoardListing }
+  | { type: 'UPDATE_BOARD_LISTING'; payload: BoardListing }
+  | { type: 'DELETE_BOARD_LISTING'; payload: string };
 
 interface State extends AppState {
   saveFailed: boolean;
@@ -70,6 +77,12 @@ function reducer(state: State, action: Action): State {
       return { ...state, customCategories: [...state.customCategories, action.payload] };
     case 'SET_SAVE_FAILED':
       return { ...state, saveFailed: action.payload };
+    case 'ADD_BOARD_LISTING':
+      return { ...state, boardListings: [...state.boardListings, action.payload] };
+    case 'UPDATE_BOARD_LISTING':
+      return { ...state, boardListings: state.boardListings.map(l => l.id === action.payload.id ? action.payload : l) };
+    case 'DELETE_BOARD_LISTING':
+      return { ...state, boardListings: state.boardListings.filter(l => l.id !== action.payload) };
     default:
       return state;
   }
@@ -80,6 +93,7 @@ const initial: State = {
   customCategories: [],
   analysisResults: [],
   analysisRunAt: undefined,
+  boardListings: [],
   saveFailed: false,
 };
 
@@ -102,9 +116,10 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
       customCategories: state.customCategories,
       analysisResults: state.analysisResults,
       analysisRunAt: state.analysisRunAt,
+      boardListings: state.boardListings,
     });
     dispatch({ type: 'SET_SAVE_FAILED', payload: !ok });
-  }, [state.inventory, state.customCategories, state.analysisResults, state.analysisRunAt]);
+  }, [state.inventory, state.customCategories, state.analysisResults, state.analysisRunAt, state.boardListings]);
 
   const navigate = useCallback((page: Page) => setCurrentPage(page), []);
 
@@ -141,6 +156,18 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
     dispatch({ type: 'ADD_CATEGORY', payload: name });
   }, []);
 
+  const addBoardListing = useCallback((l: BoardListing) => {
+    dispatch({ type: 'ADD_BOARD_LISTING', payload: l });
+  }, []);
+
+  const updateBoardListing = useCallback((l: BoardListing) => {
+    dispatch({ type: 'UPDATE_BOARD_LISTING', payload: l });
+  }, []);
+
+  const deleteBoardListing = useCallback((id: string) => {
+    dispatch({ type: 'DELETE_BOARD_LISTING', payload: id });
+  }, []);
+
   return (
     <AppContext.Provider value={{
       inventory: state.inventory,
@@ -157,6 +184,10 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
       loadDemo,
       runAnalysis,
       addCustomCategory,
+      boardListings: state.boardListings,
+      addBoardListing,
+      updateBoardListing,
+      deleteBoardListing,
     }}>
       {children}
     </AppContext.Provider>
