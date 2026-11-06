@@ -1,5 +1,5 @@
 import { useState, useMemo } from 'react';
-import { Globe, Search, X, ShoppingBag } from 'lucide-react';
+import { Globe, Search, X, ShoppingBag, RefreshCw } from 'lucide-react';
 import { useApp } from '../context/AppContext';
 import type { DeviceType } from '../types/equipment';
 import { ConditionBadge } from '../components/Badges';
@@ -9,10 +9,28 @@ const DEVICE_TYPE_OPTIONS: (DeviceType | '')[] = [
 ];
 
 export function MarketplacePage() {
-  const { boardListings, navigate } = useApp();
+  const { boardListings, navigate, loadDemoListings } = useApp();
   const [search, setSearch] = useState('');
   const [typeFilter, setTypeFilter] = useState<DeviceType | ''>('');
   const [priceFilter, setPriceFilter] = useState<'all' | 'free' | 'paid' | 'donation'>('all');
+  const [demoConfirm, setDemoConfirm] = useState(false);
+  const [toast, setToast] = useState<string | null>(null);
+
+  function showToast(msg: string) { setToast(msg); setTimeout(() => setToast(null), 3000); }
+
+  function handleLoadDemo() {
+    if (loadDemoListings() === 'confirm') {
+      setDemoConfirm(true);
+    } else {
+      showToast('6 demo marketplace listings loaded.');
+    }
+  }
+
+  function handleConfirmDemo() {
+    loadDemoListings(true);
+    setDemoConfirm(false);
+    showToast('6 demo marketplace listings loaded.');
+  }
 
   const listings = useMemo(() =>
     boardListings.filter(l => l.kind === 'surplus' && l.isPublic && l.status === 'available'),
@@ -41,12 +59,20 @@ export function MarketplacePage() {
           <p className="text-gray-500 text-sm mt-1">Surplus IT equipment available from organisations near you.</p>
           {listings.length > 0 && <p className="text-xs text-gray-400 mt-0.5">{listings.length} active listing{listings.length !== 1 ? 's' : ''}</p>}
         </div>
-        <button
-          onClick={() => navigate('surplus')}
-          className="flex items-center gap-2 px-4 py-2 bg-white border border-primary text-primary rounded-lg text-sm font-medium hover:bg-mint focus:outline-none focus:ring-2 focus:ring-primary self-start sm:self-auto"
-        >
-          <Globe size={16} /> List your surplus
-        </button>
+        <div className="flex gap-2 flex-wrap self-start sm:self-auto">
+          <button
+            onClick={handleLoadDemo}
+            className="flex items-center gap-2 px-4 py-2 bg-white border border-gray-200 text-gray-700 rounded-lg text-sm font-medium hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-primary"
+          >
+            <RefreshCw size={16} /> Load Demo
+          </button>
+          <button
+            onClick={() => navigate('surplus')}
+            className="flex items-center gap-2 px-4 py-2 bg-white border border-primary text-primary rounded-lg text-sm font-medium hover:bg-mint focus:outline-none focus:ring-2 focus:ring-primary"
+          >
+            <Globe size={16} /> List your surplus
+          </button>
+        </div>
       </div>
 
       {/* Filters */}
@@ -79,11 +105,16 @@ export function MarketplacePage() {
           <div className="w-16 h-16 bg-mint rounded-full flex items-center justify-center mx-auto mb-4"><ShoppingBag size={28} className="text-primary" /></div>
           <h2 className="text-lg font-semibold text-apptext mb-2">No public listings yet</h2>
           <p className="text-gray-500 text-sm mb-6 max-w-sm mx-auto">
-            When organisations mark surplus equipment as public, it will appear here.
+            When organisations mark surplus equipment as public, it will appear here. Load the demo to see what it looks like.
           </p>
-          <button onClick={() => navigate('surplus')} className="flex items-center gap-2 px-5 py-2.5 bg-primary text-white rounded-lg text-sm font-medium hover:bg-forest focus:outline-none focus:ring-2 focus:ring-primary mx-auto">
-            <Globe size={16} /> Go to Surplus to list equipment
-          </button>
+          <div className="flex items-center justify-center gap-3 flex-wrap">
+            <button onClick={handleLoadDemo} className="flex items-center gap-2 px-5 py-2.5 bg-primary text-white rounded-lg text-sm font-medium hover:bg-forest focus:outline-none focus:ring-2 focus:ring-primary">
+              <RefreshCw size={16} /> Load Demo
+            </button>
+            <button onClick={() => navigate('surplus')} className="flex items-center gap-2 px-5 py-2.5 bg-white border border-primary text-primary rounded-lg text-sm font-medium hover:bg-mint focus:outline-none focus:ring-2 focus:ring-primary">
+              <Globe size={16} /> List your surplus
+            </button>
+          </div>
         </div>
       )}
 
@@ -127,6 +158,26 @@ export function MarketplacePage() {
               </div>
             );
           })}
+        </div>
+      )}
+      {/* Replace confirm modal */}
+      {demoConfirm && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 px-4" role="dialog" aria-modal="true">
+          <div className="bg-white rounded-2xl shadow-xl max-w-sm w-full p-6">
+            <h2 className="text-lg font-semibold text-apptext mb-2">Replace existing listings?</h2>
+            <p className="text-sm text-gray-600 mb-6">Loading demo data will replace all current marketplace listings.</p>
+            <div className="flex gap-3 justify-end">
+              <button onClick={() => setDemoConfirm(false)} className="px-4 py-2 text-sm font-medium text-gray-600 bg-white border border-gray-200 rounded-lg hover:bg-gray-50">Cancel</button>
+              <button onClick={handleConfirmDemo} className="px-4 py-2 text-sm font-medium text-white bg-primary rounded-lg hover:bg-forest">Replace & Load Demo</button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Toast */}
+      {toast && (
+        <div className="fixed bottom-6 left-1/2 -translate-x-1/2 z-50 bg-apptext text-white px-5 py-3 rounded-xl shadow-lg text-sm font-medium" role="status" aria-live="polite">
+          {toast}
         </div>
       )}
     </div>

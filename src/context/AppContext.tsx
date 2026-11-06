@@ -2,7 +2,7 @@ import React, { createContext, useContext, useEffect, useReducer, useCallback, u
 import type { EquipmentRecord, AnalysisResult, AppState, Page, BoardListing } from '../types/equipment';
 import { loadState, saveState } from '../utils/storage';
 import { analyzeAll } from '../analysis/engine';
-import { DEMO_RECORDS } from '../data/demoData';
+import { DEMO_RECORDS, DEMO_MARKETPLACE_LISTINGS } from '../data/demoData';
 
 export interface SurplusPrefill {
   inventoryRecordId: string;
@@ -28,6 +28,7 @@ interface AppContextValue {
   deleteRecord: (id: string) => void;
   clearInventory: () => void;
   loadDemo: (force?: boolean) => 'loaded' | 'confirm';
+  loadDemoListings: (force?: boolean) => 'loaded' | 'confirm';
   runAnalysis: () => void;
   addCustomCategory: (name: string) => void;
   boardListings: BoardListing[];
@@ -50,7 +51,8 @@ type Action =
   | { type: 'SET_SAVE_FAILED'; payload: boolean }
   | { type: 'ADD_BOARD_LISTING'; payload: BoardListing }
   | { type: 'UPDATE_BOARD_LISTING'; payload: BoardListing }
-  | { type: 'DELETE_BOARD_LISTING'; payload: string };
+  | { type: 'DELETE_BOARD_LISTING'; payload: string }
+  | { type: 'LOAD_DEMO_LISTINGS'; payload: BoardListing[] };
 
 interface State extends AppState {
   saveFailed: boolean;
@@ -94,6 +96,8 @@ function reducer(state: State, action: Action): State {
       return { ...state, boardListings: state.boardListings.map(l => l.id === action.payload.id ? action.payload : l) };
     case 'DELETE_BOARD_LISTING':
       return { ...state, boardListings: state.boardListings.filter(l => l.id !== action.payload) };
+    case 'LOAD_DEMO_LISTINGS':
+      return { ...state, boardListings: action.payload };
     default:
       return state;
   }
@@ -180,6 +184,18 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
     dispatch({ type: 'ADD_CATEGORY', payload: name });
   }, []);
 
+  const loadDemoListings = useCallback((force = false): 'loaded' | 'confirm' => {
+    const existing = state.boardListings.filter(l => l.isPublic && l.status === 'available');
+    if (existing.length > 0 && !force) return 'confirm';
+    const now = Date.now();
+    const listings = DEMO_MARKETPLACE_LISTINGS.map((l, i) => ({
+      ...l,
+      id: `demo-mkt-${now}-${i}`,
+    }));
+    dispatch({ type: 'LOAD_DEMO_LISTINGS', payload: listings });
+    return 'loaded';
+  }, [state.boardListings]);
+
   const addBoardListing = useCallback((l: BoardListing) => {
     dispatch({ type: 'ADD_BOARD_LISTING', payload: l });
   }, []);
@@ -208,6 +224,7 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
       deleteRecord,
       clearInventory,
       loadDemo,
+      loadDemoListings,
       runAnalysis,
       addCustomCategory,
       boardListings: state.boardListings,
