@@ -246,10 +246,17 @@ export function InventoryPage() {
                     return (
                       <tr key={rec.id} className="hover:bg-gray-50/50 transition-colors">
                         <td className="px-5 py-3.5">
-                          <div className="font-medium text-apptext">{rec.name}</div>
-                          {typeof (rec.specs as Record<string, unknown>).assetTag === 'string' && (
-                            <div className="text-xs text-gray-400">{String((rec.specs as Record<string, unknown>).assetTag)}</div>
-                          )}
+                          <div className="flex items-center gap-3">
+                            {rec.photoDataUrl && (
+                              <img src={rec.photoDataUrl} alt="" className="h-9 w-9 rounded-md object-cover border border-gray-100 flex-shrink-0" />
+                            )}
+                            <div>
+                              <div className="font-medium text-apptext">{rec.name}</div>
+                              {typeof (rec.specs as Record<string, unknown>).assetTag === 'string' && (
+                                <div className="text-xs text-gray-400">{String((rec.specs as Record<string, unknown>).assetTag)}</div>
+                              )}
+                            </div>
+                          </div>
                         </td>
                         <td className="px-4 py-3.5 text-gray-600">{rec.deviceType}</td>
                         <td className="px-4 py-3.5 text-gray-500 max-w-[200px] truncate">{specSummary(rec)}</td>
@@ -299,9 +306,14 @@ export function InventoryPage() {
               return (
                 <div key={rec.id} className="bg-white rounded-xl border border-gray-100 shadow-sm p-4">
                   <div className="flex items-start justify-between mb-2">
-                    <div>
-                      <p className="font-medium text-apptext">{rec.name}</p>
-                      <p className="text-xs text-gray-500">{rec.deviceType} · {rec.quantity} unit{rec.quantity !== 1 ? 's' : ''}</p>
+                    <div className="flex items-start gap-3">
+                      {rec.photoDataUrl && (
+                        <img src={rec.photoDataUrl} alt="" className="h-12 w-12 rounded-lg object-cover border border-gray-100 flex-shrink-0 mt-0.5" />
+                      )}
+                      <div>
+                        <p className="font-medium text-apptext">{rec.name}</p>
+                        <p className="text-xs text-gray-500">{rec.deviceType} · {rec.quantity} unit{rec.quantity !== 1 ? 's' : ''}</p>
+                      </div>
                     </div>
                     <div className="flex gap-1">
                       <button onClick={() => navigateToSurplusWithRecord(rec)} className="p-1.5 rounded-md hover:bg-mint text-gray-500 hover:text-primary" aria-label={`Post ${rec.name} as surplus`} title="Post as Surplus">

@@ -1,5 +1,6 @@
-import { useState, useEffect } from 'react';
-import { X } from 'lucide-react';
+import { useState, useEffect, useRef } from 'react';
+import { X, Camera } from 'lucide-react';
+import { resizeImageToDataUrl } from '../utils/imageResize';
 import type {
   EquipmentRecord, DeviceType, Condition, StorageType, StorageSubtype,
   DDRGen, FormFactor, NetSubtype, PortSpeed, PrinterType, PrinterConn,
@@ -303,6 +304,21 @@ export function EquipmentForm({ existing, onClose, onSaved }: Props) {
   const { addRecord, updateRecord, customCategories, addCustomCategory } = useApp();
   const [data, setData] = useState<FormData>(() => initialFormData(existing));
   const [errors, setErrors] = useState<string[]>([]);
+  const [photoDataUrl, setPhotoDataUrl] = useState<string | undefined>(existing?.photoDataUrl);
+  const [photoLoading, setPhotoLoading] = useState(false);
+  const [photoDragOver, setPhotoDragOver] = useState(false);
+  const photoInputRef = useRef<HTMLInputElement>(null);
+
+  async function handlePhotoFile(file: File) {
+    if (!file.type.startsWith('image/')) return;
+    setPhotoLoading(true);
+    try {
+      const dataUrl = await resizeImageToDataUrl(file);
+      setPhotoDataUrl(dataUrl);
+    } finally {
+      setPhotoLoading(false);
+    }
+  }
 
   // When device type changes, reset type-specific fields
   const [prevType, setPrevType] = useState<string>(data.deviceType as string ?? '');
@@ -356,6 +372,7 @@ export function EquipmentForm({ existing, onClose, onSaved }: Props) {
         condition: data.condition as Condition,
         specs,
         updatedAt: now,
+        photoDataUrl: photoDataUrl,
       });
     } else {
       addRecord({
@@ -367,6 +384,7 @@ export function EquipmentForm({ existing, onClose, onSaved }: Props) {
         specs,
         createdAt: now,
         updatedAt: now,
+        photoDataUrl: photoDataUrl,
       });
     }
     onSaved();
@@ -446,6 +464,49 @@ export function EquipmentForm({ existing, onClose, onSaved }: Props) {
 
           <div className="border-t border-gray-100 pt-4">
             <Field label="Notes (optional)" name="notes" value={data.notes as string ?? ''} onChange={handleChange} placeholder="Any additional context" />
+          </div>
+
+          {/* Photo upload */}
+          <div className="border-t border-gray-100 pt-4">
+            <p className="text-sm font-medium text-apptext mb-2">Reference Photo (optional)</p>
+            {photoDataUrl ? (
+              <div className="relative inline-block">
+                <img src={photoDataUrl} alt="Equipment preview" className="h-32 w-auto rounded-lg border border-gray-200 object-cover" />
+                <button
+                  type="button"
+                  onClick={() => setPhotoDataUrl(undefined)}
+                  className="absolute -top-2 -right-2 bg-white border border-gray-200 rounded-full p-0.5 hover:bg-red-50 hover:border-red-300 focus:outline-none focus:ring-2 focus:ring-red-400"
+                  aria-label="Remove photo"
+                >
+                  <X size={14} className="text-gray-500" />
+                </button>
+              </div>
+            ) : (
+              <div
+                onDragOver={e => { e.preventDefault(); setPhotoDragOver(true); }}
+                onDragLeave={() => setPhotoDragOver(false)}
+                onDrop={e => { e.preventDefault(); setPhotoDragOver(false); const f = e.dataTransfer.files[0]; if (f) handlePhotoFile(f); }}
+                onClick={() => photoInputRef.current?.click()}
+                className={`flex flex-col items-center justify-center gap-2 border-2 border-dashed rounded-xl py-6 px-4 cursor-pointer transition-colors ${photoDragOver ? 'border-primary bg-mint/40' : 'border-gray-200 hover:border-primary/50 hover:bg-gray-50'}`}
+              >
+                {photoLoading ? (
+                  <span className="text-sm text-gray-500">Processing…</span>
+                ) : (
+                  <>
+                    <Camera size={22} className="text-gray-400" />
+                    <p className="text-sm text-gray-500">Drag & drop or <span className="text-primary font-medium">click to upload</span></p>
+                    <p className="text-xs text-gray-400">JPG, PNG, WebP — auto-resized for storage</p>
+                  </>
+                )}
+              </div>
+            )}
+            <input
+              ref={photoInputRef}
+              type="file"
+              accept="image/*"
+              className="hidden"
+              onChange={e => { const f = e.target.files?.[0]; if (f) handlePhotoFile(f); e.target.value = ''; }}
+            />
           </div>
 
           {deviceType && ['Desktop', 'Laptop', 'Server'].includes(deviceType) && (
