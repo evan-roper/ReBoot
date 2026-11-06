@@ -303,11 +303,9 @@ export function SurplusPage() {
           <h2 className="text-lg font-semibold text-apptext mb-2">No surplus records yet</h2>
           <p className="text-gray-500 text-sm mb-6 max-w-sm mx-auto">Record surplus equipment from your inventory, or add one manually.</p>
           <div className="flex items-center justify-center gap-3 flex-wrap">
-            {inventory.length > 0 && (
-              <button onClick={() => setShowInventoryPicker(true)} className="flex items-center gap-2 px-5 py-2.5 bg-white border border-primary text-primary rounded-lg text-sm font-medium hover:bg-mint focus:outline-none focus:ring-2 focus:ring-primary">
-                <Package size={16} /> Choose from Inventory
-              </button>
-            )}
+            <button onClick={() => setShowInventoryPicker(true)} className="flex items-center gap-2 px-5 py-2.5 bg-white border border-primary text-primary rounded-lg text-sm font-medium hover:bg-mint focus:outline-none focus:ring-2 focus:ring-primary">
+              <Package size={16} /> From Inventory
+            </button>
             <button onClick={() => { setEditTarget(undefined); setPrefill(undefined); setShowForm(true); }} className="flex items-center gap-2 px-5 py-2.5 bg-primary text-white rounded-lg text-sm font-medium hover:bg-forest focus:outline-none focus:ring-2 focus:ring-primary">
               <Plus size={16} /> Add Manually
             </button>

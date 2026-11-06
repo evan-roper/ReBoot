@@ -134,6 +134,7 @@ export interface EquipmentRecord {
   createdAt: string;
   updatedAt: string;
   analysisStatus?: 'analyzed' | 'pending' | 'stale';
+  photoDataUrl?: string; // base64 data URL, resized for storage
 }
 
 export type Classification =
