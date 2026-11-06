@@ -9,6 +9,7 @@ const NAV_ITEMS: { id: Page; label: string; icon: string }[] = [
   { id: 'analysis', label: 'Analysis Dashboard', icon: '📊' },
   { id: 'surplus', label: 'Surplus Equipment', icon: '🔁' },
   { id: 'opportunities', label: 'Second Life Opportunities', icon: '♻️' },
+  { id: 'marketplace', label: 'Marketplace', icon: '🛒' },
 ];
 
 function NavItem({ item, active, onClick }: { item: typeof NAV_ITEMS[0]; active: boolean; onClick: () => void }) {

@@ -164,7 +164,7 @@ export interface HiddenPotentialItem {
   matchStrength: 'Strong' | 'Conditional' | 'Speculative';
 }
 
-export type Page = 'home' | 'inventory' | 'analysis' | 'opportunities' | 'surplus';
+export type Page = 'home' | 'inventory' | 'analysis' | 'opportunities' | 'surplus' | 'marketplace';
 
 // ── Board listings (surplus / missing) ──────────────────────────────────────
 
@@ -178,13 +178,16 @@ export interface BoardListing {
   deviceType: DeviceType;
   name: string;
   quantity: number;
-  condition?: Condition;          // surplus: condition of items; missing: desired condition
-  specs: string;                  // free-text description
+  condition?: Condition;
+  specs: string;
   location?: string;
   status: BoardListingStatus;
   postedAt: string;
   updatedAt: string;
-  inventoryRecordId?: string;     // optional link to an EquipmentRecord
+  inventoryRecordId?: string;
+  isPublic?: boolean;             // posted to public marketplace
+  price?: number;                 // asking price (undefined = free / not set)
+  isNonProfit?: boolean;          // non-profit donation listing
 }
 
 export interface AppState {
